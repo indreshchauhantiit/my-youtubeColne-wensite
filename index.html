@@ -16,6 +16,8 @@
     <div id="root"></div>
 
     <script type="text/babel">
+      const API_KEY = "AIzaSyCQ2khBaHj_lxj1UCuzpQeWLdCeYO7Q_cc"; // <-- apna YouTube API key yaha daalo
+
       // ---------------- Header ----------------
       function Header({ onSearch }) {
         return (
@@ -62,31 +64,35 @@
       }
 
       // ---------------- VideoCard ----------------
-      function VideoCard({ title, channel }) {
+      function VideoCard({ video, onSelect }) {
+        const videoId = video.id.videoId || video.id;
         return (
-          <div className="bg-white shadow rounded overflow-hidden">
-            <div className="h-40 bg-gray-300 flex items-center justify-center">
-              🎬 Thumbnail
-            </div>
+          <div
+            className="bg-white shadow rounded overflow-hidden cursor-pointer hover:shadow-lg"
+            onClick={() => onSelect(videoId)}
+          >
+            <img
+              src={video.snippet.thumbnails.medium.url}
+              alt={video.snippet.title}
+              className="w-full h-40 object-cover"
+            />
             <div className="p-2">
-              <h2 className="font-semibold">{title}</h2>
-              <p className="text-sm text-gray-600">{channel}</p>
+              <h2 className="font-semibold line-clamp-2">{video.snippet.title}</h2>
+              <p className="text-sm text-gray-600">{video.snippet.channelTitle}</p>
             </div>
           </div>
         );
       }
 
       // ---------------- VideoGrid ----------------
-      function VideoGrid() {
-        const videos = [
-          { title: "React Tutorial", channel: "CodeWithMe" },
-          { title: "Learn Tailwind", channel: "DevWorld" },
-          { title: "YouTube Clone", channel: "Indresh" },
-        ];
+      function VideoGrid({ videos, loading, onSelect }) {
+        if (loading) return <Loader />;
+        if (!videos.length) return <EmptyState text="No videos found." />;
+
         return (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 p-4">
-            {videos.map((v, i) => (
-              <VideoCard key={i} {...v} />
+            {videos.map((v) => (
+              <VideoCard key={v.id.videoId || v.id} video={v} onSelect={onSelect} />
             ))}
           </div>
         );
@@ -120,29 +126,41 @@
       }
 
       // ---------------- Pages ----------------
-      function Home() {
+      function Home({ videos, loading, onSelect }) {
         return (
           <div>
             <h2 className="text-xl font-bold p-4">🔥 Trending</h2>
-            <VideoGrid />
+            <VideoGrid videos={videos} loading={loading} onSelect={onSelect} />
           </div>
         );
       }
 
-      function Search({ query }) {
+      function Search({ query, results, loading, onSelect }) {
         return (
-          <EmptyState
-            text={
-              query
-                ? `Showing results for "${query}"`
-                : "Search results will appear here."
-            }
-          />
+          <div>
+            <h2 className="text-xl font-bold p-4">
+              {query ? `🔍 Results for "${query}"` : "Search Videos"}
+            </h2>
+            <VideoGrid videos={results} loading={loading} onSelect={onSelect} />
+          </div>
         );
       }
 
-      function Watch() {
-        return <EmptyState text="▶️ Watch page placeholder." />;
+      function Watch({ videoId }) {
+        if (!videoId) return <EmptyState text="▶️ Select a video to watch." />;
+        return (
+          <div className="p-4">
+            <div className="aspect-w-16 aspect-h-9">
+              <iframe
+                className="w-full h-[500px] rounded"
+                src={`https://www.youtube.com/embed/${videoId}`}
+                frameBorder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              ></iframe>
+            </div>
+          </div>
+        );
       }
 
       function Library() {
@@ -163,11 +181,66 @@
       function App() {
         const [page, setPage] = React.useState("Home");
         const [searchQuery, setSearchQuery] = React.useState("");
+        const [trending, setTrending] = React.useState([]);
+        const [searchResults, setSearchResults] = React.useState([]);
+        const [loading, setLoading] = React.useState(false);
+        const [currentVideo, setCurrentVideo] = React.useState(null);
+
+        // Fetch trending videos
+        React.useEffect(() => {
+          async function fetchTrending() {
+            setLoading(true);
+            try {
+              const res = await fetch(
+                `https://www.googleapis.com/youtube/v3/videos?part=snippet&chart=mostPopular&maxResults=9&regionCode=IN&key=${API_KEY}`
+              );
+              const data = await res.json();
+              setTrending(data.items || []);
+            } catch (err) {
+              console.error(err);
+            }
+            setLoading(false);
+          }
+          fetchTrending();
+        }, []);
+
+        // Fetch search results
+        React.useEffect(() => {
+          if (!searchQuery) return;
+          async function fetchSearch() {
+            setLoading(true);
+            try {
+              const res = await fetch(
+                `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${searchQuery}&maxResults=9&type=video&key=${API_KEY}`
+              );
+              const data = await res.json();
+              setSearchResults(data.items || []);
+            } catch (err) {
+              console.error(err);
+            }
+            setLoading(false);
+          }
+          fetchSearch();
+        }, [searchQuery]);
+
+        const handleSelectVideo = (videoId) => {
+          setCurrentVideo(videoId);
+          setPage("Watch");
+        };
 
         let content;
-        if (page === "Home") content = <Home />;
-        if (page === "Search") content = <Search query={searchQuery} />;
-        if (page === "Watch") content = <Watch />;
+        if (page === "Home")
+          content = <Home videos={trending} loading={loading} onSelect={handleSelectVideo} />;
+        if (page === "Search")
+          content = (
+            <Search
+              query={searchQuery}
+              results={searchResults}
+              loading={loading}
+              onSelect={handleSelectVideo}
+            />
+          );
+        if (page === "Watch") content = <Watch videoId={currentVideo} />;
         if (page === "Library") content = <Library />;
         if (page === "Channels") content = <Channels />;
 
