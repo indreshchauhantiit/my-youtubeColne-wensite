@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>YouTube Companion Dashboard</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- React + ReactDOM -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <!-- Babel for JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  </head>
+  <body class="bg-gray-100">
+    <div id="root"></div>
+
+    <script type="text/babel">
+      // ---------------- Header ----------------
+      function Header({ onSearch }) {
+        return (
+          <header className="bg-red-600 text-white p-4 flex justify-between items-center">
+            <h1 className="text-xl font-bold">YouTube Companion</h1>
+            <input
+              type="text"
+              placeholder="Search..."
+              className="px-3 py-1 rounded text-black"
+              onChange={(e) => onSearch(e.target.value)}
+            />
+          </header>
+        );
+      }
+
+      // ---------------- Sidebar ----------------
+      function Sidebar({ currentPage, setPage }) {
+        const menu = [
+          { name: "Home", icon: "🏠" },
+          { name: "Search", icon: "🔍" },
+          { name: "Watch", icon: "▶️" },
+          { name: "Library", icon: "📚" },
+          { name: "Channels", icon: "📺" },
+        ];
+
+        return (
+          <aside className="bg-gray-900 text-white w-64 min-h-screen p-4 space-y-4">
+            <div className="font-bold text-lg">Menu</div>
+            <ul className="space-y-2">
+              {menu.map((item) => (
+                <li
+                  key={item.name}
+                  className={`p-2 rounded cursor-pointer ${
+                    currentPage === item.name ? "bg-gray-700" : "hover:bg-gray-700"
+                  }`}
+                  onClick={() => setPage(item.name)}
+                >
+                  {item.icon} {item.name}
+                </li>
+              ))}
+            </ul>
+          </aside>
+        );
+      }
+
+      // ---------------- VideoCard ----------------
+      function VideoCard({ title, channel }) {
+        return (
+          <div className="bg-white shadow rounded overflow-hidden">
+            <div className="h-40 bg-gray-300 flex items-center justify-center">
+              🎬 Thumbnail
+            </div>
+            <div className="p-2">
+              <h2 className="font-semibold">{title}</h2>
+              <p className="text-sm text-gray-600">{channel}</p>
+            </div>
+          </div>
+        );
+      }
+
+      // ---------------- VideoGrid ----------------
+      function VideoGrid() {
+        const videos = [
+          { title: "React Tutorial", channel: "CodeWithMe" },
+          { title: "Learn Tailwind", channel: "DevWorld" },
+          { title: "YouTube Clone", channel: "Indresh" },
+        ];
+        return (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 p-4">
+            {videos.map((v, i) => (
+              <VideoCard key={i} {...v} />
+            ))}
+          </div>
+        );
+      }
+
+      // ---------------- ChannelPill ----------------
+      function ChannelPill({ name }) {
+        return (
+          <span className="bg-gray-200 px-3 py-1 rounded-full text-sm mr-2">
+            {name}
+          </span>
+        );
+      }
+
+      // ---------------- Loader ----------------
+      function Loader() {
+        return (
+          <div className="flex justify-center items-center p-6">
+            <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-red-600"></div>
+          </div>
+        );
+      }
+
+      // ---------------- EmptyState ----------------
+      function EmptyState({ text }) {
+        return (
+          <div className="text-gray-500 text-center p-6">
+            {text || "Nothing here yet!"}
+          </div>
+        );
+      }
+
+      // ---------------- Pages ----------------
+      function Home() {
+        return (
+          <div>
+            <h2 className="text-xl font-bold p-4">🔥 Trending</h2>
+            <VideoGrid />
+          </div>
+        );
+      }
+
+      function Search({ query }) {
+        return (
+          <EmptyState
+            text={
+              query
+                ? `Showing results for "${query}"`
+                : "Search results will appear here."
+            }
+          />
+        );
+      }
+
+      function Watch() {
+        return <EmptyState text="▶️ Watch page placeholder." />;
+      }
+
+      function Library() {
+        return <EmptyState text="📚 Your library is empty." />;
+      }
+
+      function Channels() {
+        return (
+          <div className="p-4">
+            <h2 className="font-bold mb-2">📺 Followed Channels</h2>
+            <ChannelPill name="React Devs" />
+            <ChannelPill name="Music Mix" />
+          </div>
+        );
+      }
+
+      // ---------------- App ----------------
+      function App() {
+        const [page, setPage] = React.useState("Home");
+        const [searchQuery, setSearchQuery] = React.useState("");
+
+        let content;
+        if (page === "Home") content = <Home />;
+        if (page === "Search") content = <Search query={searchQuery} />;
+        if (page === "Watch") content = <Watch />;
+        if (page === "Library") content = <Library />;
+        if (page === "Channels") content = <Channels />;
+
+        return (
+          <div className="flex">
+            <Sidebar currentPage={page} setPage={setPage} />
+            <div className="flex-1">
+              <Header onSearch={setSearchQuery} />
+              {content}
+            </div>
+          </div>
+        );
+      }
+
+      // ---------------- Render ----------------
+      const root = ReactDOM.createRoot(document.getElementById("root"));
+      root.render(<App />);
+    </script>
+  </body>
+</html>
